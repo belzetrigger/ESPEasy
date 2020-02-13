@@ -404,7 +404,12 @@ bool ExecuteCommand(taskIndex_t taskIndex, byte source, const char *Line, bool t
       }
     }
     if (handled) {
-      SendStatus(source, return_command_success());
+       // TODO: if we are on webJson, let the plugin write it
+       // ore at least provide proper Json
+        if(!printToWebJSON)
+        {
+          SendStatus(source, return_command_success());
+        }
       return true;
     }
   }

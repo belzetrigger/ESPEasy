@@ -814,7 +814,7 @@ To create/register a plugin, you have to :
 
 // EXPERIMENTAL (playground) #######################
 #ifdef PLUGIN_SET_EXPERIMENTAL
-    #define USES_P046   // VentusW266
+  /*  #define USES_P046   // VentusW266
     #define USES_P050   // TCS34725 RGB Color Sensor with IR filter and White LED
     #define USES_P064   // APDS9960 Gesture
     #define USES_P077	// CSE7766   Was P134 on Playground
@@ -885,6 +885,11 @@ To create/register a plugin, you have to :
 	#define USES_P211	// MPU6050
 	#define USES_P212	// MY9291
 	#define USES_P213	// VEML6070
+    */
+    #define USES_P124   
+    #define USES_P321
+    #define USES_P241
+    
 #endif
 
 

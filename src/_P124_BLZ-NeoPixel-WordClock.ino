@@ -1217,7 +1217,7 @@ struct P124_data_struct : public PluginTaskData_base
  */
   void updateTime()
   {
-    updateTime(hour(), minute());
+    updateTime(node_time.hour(), node_time.minute());
   }
 
   /**
@@ -1231,9 +1231,9 @@ struct P124_data_struct : public PluginTaskData_base
   {
     time_needs_update = true;
     if (h < 0 || h > 24)
-      h = hour();
+      h = node_time.hour();
     if (m < 0 || m > 60)
-      m = minute();
+      m = node_time.minute();
 
     hours = h;
     minutes = m;
@@ -2526,7 +2526,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String &string)
     {
       // String argName = F("p075_template");
       // argName += varNr + 1;
-      String value = WebServer.arg(P124_WC_LABLES[varNr]);
+      String value = web_server.arg(P124_WC_LABLES[varNr]);
       if (!safe_strncpy(deviceTemplate[varNr], value, P124_MAX_WC_WORD_LENGTH))
       {
         error += getCustomTaskSettingsError(varNr);
@@ -2579,7 +2579,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String &string)
       //after the plugin has been initialised successfully, set success and break
 
       // if we are on an init AFTER config changes, try to rebuild time
-      if(hour()){
+      if(node_time.hour()){
         P124_data->updateTime();
       }
 
@@ -2604,7 +2604,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String &string)
       break;
     }
 
-    P124_data->updateTime(hour(), minute());
+    P124_data->updateTime(node_time.hour(), node_time.minute());
     /*
     String log;
     log.reserve(128);

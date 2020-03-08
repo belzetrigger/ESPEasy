@@ -4,6 +4,7 @@
 #define WIFI_ALLOW_AP_AFTERBOOT_PERIOD     5      // in minutes
 
 #include "src/Globals/ESPEasyWiFiEvent.h"
+#include "ESPEasy-Globals.h"
 
 // ********************************************************************************
 // WiFi state
@@ -470,7 +471,7 @@ void setWifiMode(WiFiMode_t wifimode) {
     #endif // ifdef ESP8266
     delay(1);
   } else {
-    delay(30); // Must allow for some time to init.
+    delay(100); // Must allow for some time to init.
   }
   bool new_mode_AP_enabled = WifiIsAP(wifimode);
 
@@ -510,13 +511,7 @@ bool WifiIsSTA(WiFiMode_t wifimode)
 // ********************************************************************************
 String WifiGetAPssid()
 {
-  String ssid(Settings.Name);
-
-  if (Settings.appendUnitToHostname()) {
-    ssid += "_";
-    ssid += Settings.Unit;
-  }
-  return ssid;
+  return Settings.getHostname();
 }
 
 // ********************************************************************************

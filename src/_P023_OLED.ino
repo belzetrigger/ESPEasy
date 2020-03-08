@@ -3,6 +3,8 @@
 //#################################### Plugin 023: OLED SSD1306 display #################################
 //#######################################################################################################
 
+#include "_Plugin_Helper.h"
+
 // Sample templates
 //  Temp: [DHT11#Temperature]   Hum:[DHT11#humidity]
 //  DS Temp:[Dallas1#Temperature#R]
@@ -131,7 +133,7 @@ boolean Plugin_023(byte function, struct EventStruct *event, String& string)
         String error;
         for (byte varNr = 0; varNr < P23_Nlines; varNr++)
         {
-          if (!safe_strncpy(deviceTemplate[varNr], WebServer.arg(getPluginCustomArgName(varNr)), P23_Nchars)) {
+          if (!safe_strncpy(deviceTemplate[varNr], web_server.arg(getPluginCustomArgName(varNr)), P23_Nchars)) {
             error += getCustomTaskSettingsError(varNr);
           }
         }

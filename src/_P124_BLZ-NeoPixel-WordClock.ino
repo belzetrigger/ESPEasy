@@ -1144,6 +1144,9 @@ struct P124_data_struct : public PluginTaskData_base
   */
   void testAll()
   {
+    String log = F(PLUGIN_NAME_124);
+    log += F("#testAll: without color --> use default color");
+    addLog(LOG_LEVEL_DEBUG, log);
     testAll(0, 0, 20);
   }
 

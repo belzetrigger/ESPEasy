@@ -2163,7 +2163,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String &string)
 
     Device[++deviceCount].Number = PLUGIN_ID_124;
     Device[deviceCount].Type = DEVICE_TYPE_SINGLE;  //how the device is connected
-    Device[deviceCount].VType = SENSOR_TYPE_SWITCH; //using type string to have string values instead of long, but only 1 evetn->string
+    Device[deviceCount].VType = Sensor_VType::SENSOR_TYPE_SWITCH; //using type string to have string values instead of long, but only 1 evetn->string
     Device[deviceCount].Ports = 0;
     Device[deviceCount].PullUpOption = false;
     Device[deviceCount].InverseLogicOption = false;

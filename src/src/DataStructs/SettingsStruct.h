@@ -2,26 +2,61 @@
 #ifndef DATASTRUCTS_SETTINGSSTRUCT_H
 #define DATASTRUCTS_SETTINGSSTRUCT_H
 
-
-#include "../DataStructs/ESPEasyLimits.h"
+#include "../CustomBuild/ESPEasyLimits.h"
+#include "../DataTypes/EthernetParameters.h"
+#include "../DataTypes/NetworkMedium.h"
 #include "../Globals/Plugins.h"
+#include "../../ESPEasy_common.h"
+
+//we disable SPI if not defined
+#ifndef DEFAULT_SPI
+ #define DEFAULT_SPI 0
+#endif
+
+
+// FIXME TD-er: Move this PinBootState to DataTypes folder
+
+// State is stored, so don't change order
+enum class PinBootState {
+  Default_state  = 0,
+  Output_low     = 1,
+  Output_high    = 2,
+  Input_pullup   = 3,
+  Input_pulldown = 4,  // Only on ESP32 and GPIO16 on ESP82xx
+  Input          = 5,
+
+  // Options for later:
+  // ANALOG (only on ESP32)
+  // WAKEUP_PULLUP (only on ESP8266)
+  // WAKEUP_PULLDOWN (only on ESP8266)
+  // SPECIAL
+  // FUNCTION_0 (only on ESP8266)
+  // FUNCTION_1
+  // FUNCTION_2
+  // FUNCTION_3
+  // FUNCTION_4
+  // FUNCTION_5 (only on ESP32)
+  // FUNCTION_6 (only on ESP32)
+
+};
 
 
 /*********************************************************************************************\
  * SettingsStruct
 \*********************************************************************************************/
-template <unsigned int N_TASKS>
+template<unsigned int N_TASKS>
 class SettingsStruct_tmpl
 {
   public:
+
   SettingsStruct_tmpl();
 
   // VariousBits1 defaults to 0, keep in mind when adding bit lookups.
   bool appendUnitToHostname() const;
   void appendUnitToHostname(bool value);
 
-  bool uniqueMQTTclientIdReconnect() const;
-  void uniqueMQTTclientIdReconnect(bool value);
+  bool uniqueMQTTclientIdReconnect_unused() const;
+  void uniqueMQTTclientIdReconnect_unused(bool value);
 
   bool OldRulesEngine() const;
   void OldRulesEngine(bool value);
@@ -81,6 +116,12 @@ class SettingsStruct_tmpl
   // Return hostname with explicit set append unit.
   String getHostname(bool appendUnit) const;
 
+  PinBootState getPinBootState(uint8_t gpio_pin) const;
+  void setPinBootState(uint8_t gpio_pin, PinBootState state);
+
+
+
+
   unsigned long PID;
   int           Version;
   int16_t       Build;
@@ -98,7 +139,7 @@ class SettingsStruct_tmpl
   int8_t        Pin_i2c_scl;
   int8_t        Pin_status_led;
   int8_t        Pin_sd_cs;
-  int8_t        PinBootStates[17];  // FIXME TD-er: this is ESP8266 number of pins. ESP32 has double.
+  int8_t        PinBootStates[17];  // Only use getPinBootState and setPinBootState as multiple pins are packed for ESP32
   byte          Syslog_IP[4];
   unsigned int  UDPPort;
   byte          SyslogLevel;
@@ -106,7 +147,7 @@ class SettingsStruct_tmpl
   byte          WebLogLevel;
   byte          SDLogLevel;
   unsigned long BaudRate;
-  unsigned long MessageDelay;
+  unsigned long MessageDelay_unused;  // MQTT settings now moved to the controller settings.
   byte          deepSleep_wakeTime;   // 0 = Sleep Disabled, else time awake from sleep in seconds
   boolean       CustomCSS;
   boolean       DST;
@@ -119,8 +160,8 @@ class SettingsStruct_tmpl
   boolean       GlobalSync;
   unsigned long ConnectionFailuresThreshold;
   int16_t       TimeZone;
-  boolean       MQTTRetainFlag;
-  boolean       InitSPI;
+  boolean       MQTTRetainFlag_unused;
+  byte          InitSPI; //0 = disabled, 1= enabled but for ESP32 there is option 2= SPI2 
   // FIXME TD-er: Must change to cpluginID_t, but then also another check must be added since changing the pluginID_t will also render settings incompatible
   byte          Protocol[CONTROLLER_MAX];
   byte          Notification[NOTIFICATION_MAX]; //notifications, point to a NPLUGIN id
@@ -141,8 +182,8 @@ class SettingsStruct_tmpl
   boolean       TaskDevicePin1Inversed[N_TASKS];
   float         TaskDevicePluginConfigFloat[N_TASKS][PLUGIN_CONFIGFLOATVAR_MAX];
   long          TaskDevicePluginConfigLong[N_TASKS][PLUGIN_CONFIGLONGVAR_MAX];
-  boolean       OLD_TaskDeviceSendData[N_TASKS];
-  boolean       TaskDeviceGlobalSync[N_TASKS];
+  byte          OLD_TaskDeviceSendData[N_TASKS];
+  byte          OLD_TaskDeviceGlobalSync[N_TASKS];
   byte          TaskDeviceDataFeed[N_TASKS];    // When set to 0, only read local connected sensorsfeeds
   unsigned long TaskDeviceTimer[N_TASKS];
   boolean       TaskDeviceEnabled[N_TASKS];
@@ -160,7 +201,7 @@ class SettingsStruct_tmpl
   int8_t        Pin_Reset;
   byte          SyslogFacility;
   uint32_t      StructSize;  // Forced to be 32 bit, to make sure alignment is clear.
-  boolean       MQTTUseUnitNameAsClientId;
+  boolean       MQTTUseUnitNameAsClientId_unused;
 
   //its safe to extend this struct, up to several bytes, default values in config are 0
   //look in misc.ino how config.dat is used because also other stuff is stored in it at different offsets.
@@ -169,16 +210,40 @@ class SettingsStruct_tmpl
   float         Longitude;
   uint32_t      VariousBits1;
   uint32_t      ResetFactoryDefaultPreference; // Do not clear this one in the clearAll()
+  uint32_t      I2C_clockSpeed;
+  uint16_t      WebserverPort;
+  uint16_t      SyslogPort;
 
   // FIXME @TD-er: As discussed in #1292, the CRC for the settings is now disabled.
   // make sure crc is the last value in the struct
   // Try to extend settings to make the checksum 4-byte aligned.
 //  uint8_t       ProgmemMd5[16]; // crc of the binary that last saved the struct to file.
 //  uint8_t       md5[16];
+  uint8_t       ETH_Phy_Addr;
+  int8_t        ETH_Pin_mdc;
+  int8_t        ETH_Pin_mdio;
+  int8_t        ETH_Pin_power;
+  EthPhyType_t   ETH_Phy_Type;
+  EthClockMode_t ETH_Clock_Mode;
+  byte          ETH_IP[4];
+  byte          ETH_Gateway[4];
+  byte          ETH_Subnet[4];
+  byte          ETH_DNS[4];
+  NetworkMedium_t NetworkMedium;
+  int8_t        I2C_Multiplexer_Type;
+  int8_t        I2C_Multiplexer_Addr;
+  int8_t        I2C_Multiplexer_Channel[N_TASKS];
+  uint8_t       I2C_Flags[N_TASKS];
+  uint32_t      I2C_clockSpeed_Slow;
+  uint8_t       I2C_Multiplexer_ResetPin;
+
+  #ifdef ESP32
+  int8_t        PinBootStates_ESP32[24]; // pins 17 ... 39
+  #endif
 };
 
 /*
-SettingsStruct* SettingsStruct_ptr = new SettingsStruct;
+SettingsStruct* SettingsStruct_ptr = new (std::nothrow) SettingsStruct;
 SettingsStruct& Settings = *SettingsStruct_ptr;
 */
 

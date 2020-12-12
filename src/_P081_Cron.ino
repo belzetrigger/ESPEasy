@@ -1,13 +1,15 @@
+#include "_Plugin_Helper.h"
 // #######################################################################################################
 // #################################### Plugin 081: CRON tasks Scheduler       ###########################
 // #######################################################################################################
 
+//-V::795
 
 #ifdef USES_P081
 
 #include <ctype.h>
 #include <time.h>
-#include "_Plugin_Helper.h"
+
 
 extern "C"
 {
@@ -179,7 +181,7 @@ boolean Plugin_081(byte function, struct EventStruct *event, String& string)
 
       Device[++deviceCount].Number           = PLUGIN_ID_081;
       Device[deviceCount].Type               = DEVICE_TYPE_DUMMY; // how the device is connected
-      Device[deviceCount].VType              = SENSOR_TYPE_NONE;  // type of value the plugin will return, used only for Domoticz
+      Device[deviceCount].VType              = Sensor_VType::SENSOR_TYPE_NONE;  // type of value the plugin will return, used only for Domoticz
       Device[deviceCount].Ports              = 0;
       Device[deviceCount].PullUpOption       = false;
       Device[deviceCount].InverseLogicOption = false;
@@ -265,7 +267,7 @@ boolean Plugin_081(byte function, struct EventStruct *event, String& string)
 
     case PLUGIN_INIT:
     {
-      initPluginTaskData(event->TaskIndex, new P081_data_struct(P081_getCronExpr(event->TaskIndex)));
+      initPluginTaskData(event->TaskIndex, new (std::nothrow) P081_data_struct(P081_getCronExpr(event->TaskIndex)));
       P081_data_struct *P081_data =
         static_cast<P081_data_struct *>(getPluginTaskData(event->TaskIndex));
 
@@ -279,12 +281,6 @@ boolean Plugin_081(byte function, struct EventStruct *event, String& string)
       } else {
         clearPluginTaskData(event->TaskIndex);
       }
-      break;
-    }
-
-    case PLUGIN_EXIT: {
-      clearPluginTaskData(event->TaskIndex);
-      success = true;
       break;
     }
 
@@ -318,8 +314,10 @@ boolean Plugin_081(byte function, struct EventStruct *event, String& string)
             addLog(LOG_LEVEL_DEBUG, String(F("Next execution:")) + ESPEasy_time::getDateTimeString(*gmtime(&next_exec_time)));
 
             if (function != PLUGIN_TIME_CHANGE) {
-              LoadTaskSettings(event->TaskIndex);
-              eventQueue.add(String(F("Cron#")) + String(ExtraTaskSettings.TaskDeviceName));
+              if (Settings.UseRules) {
+                LoadTaskSettings(event->TaskIndex);
+                eventQueue.add(String(F("Cron#")) + String(ExtraTaskSettings.TaskDeviceName));
+              }
               success = true;
             }
           }

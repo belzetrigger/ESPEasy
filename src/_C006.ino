@@ -1,11 +1,24 @@
+#include "src/Helpers/_CPlugin_Helper.h"
 #ifdef USES_C006
 //#######################################################################################################
 //########################### Controller Plugin 006: PiDome MQTT ########################################
 //#######################################################################################################
 
+#include "src/Commands/InternalCommands.h"
+#include "src/ESPEasyCore/Controller.h"
+#include "src/Globals/ExtraTaskSettings.h"
+#include "src/Globals/Settings.h"
+#include "src/Helpers/Network.h"
+#include "src/Helpers/PeriodicalActions.h"
+#include "_Plugin_Helper.h"
+
 #define CPLUGIN_006
 #define CPLUGIN_ID_006         6
 #define CPLUGIN_NAME_006       "PiDome MQTT"
+
+String CPlugin_006_pubname;
+bool CPlugin_006_mqtt_retainFlag = false;
+
 
 bool CPlugin_006(CPlugin::Function function, struct EventStruct *event, String& string)
 {
@@ -20,6 +33,7 @@ bool CPlugin_006(CPlugin::Function function, struct EventStruct *event, String& 
         Protocol[protocolCount].usesTemplate = true;
         Protocol[protocolCount].usesAccount = false;
         Protocol[protocolCount].usesPassword = false;
+        Protocol[protocolCount].usesExtCreds = true;
         Protocol[protocolCount].defaultPort = 1883;
         Protocol[protocolCount].usesID = false;
         break;
@@ -33,9 +47,13 @@ bool CPlugin_006(CPlugin::Function function, struct EventStruct *event, String& 
 
     case CPlugin::Function::CPLUGIN_INIT:
       {
-        MakeControllerSettings(ControllerSettings);
-        LoadControllerSettings(event->ControllerIndex, ControllerSettings);
-        MQTTDelayHandler.configureControllerSettings(ControllerSettings);
+        success = init_mqtt_delay_queue(event->ControllerIndex, CPlugin_006_pubname, CPlugin_006_mqtt_retainFlag);
+        break;
+      }
+
+    case CPlugin::Function::CPLUGIN_EXIT:
+      {
+        exit_mqtt_delay_queue();
         break;
       }
 
@@ -64,53 +82,51 @@ bool CPlugin_006(CPlugin::Function function, struct EventStruct *event, String& 
         topicSplit[count] = tmpTopic;
 
         String name = topicSplit[4];
-        String cmd = topicSplit[5];
-        struct EventStruct TempEvent;
-        TempEvent.TaskIndex = event->TaskIndex;
-        TempEvent.Par1 = topicSplit[6].toInt();
-        TempEvent.Par2 = 0;
-        TempEvent.Par3 = 0;
-        if (event->String2 == F("false") || event->String2 == F("true"))
-        {
-          if (event->String2 == F("true"))
-            TempEvent.Par2 = 1;
-        }
-        else
-          TempEvent.Par2 = event->String2.toFloat();
         if (name == Settings.Name)
         {
-          PluginCall(PLUGIN_WRITE, &TempEvent, cmd);
+          String cmd = topicSplit[5];
+          cmd += ',';
+          cmd += topicSplit[6].toInt(); // Par1
+          cmd += ',';
+          if (event->String2 == F("false") || event->String2 == F("true"))
+          {
+            cmd += (event->String2 == F("true")) ? '1' : '0'; // Par2
+          }
+          else
+          {
+            cmd += event->String2.toFloat(); // Par2
+          }
+          ExecuteCommand_all(EventValueSource::Enum::VALUE_SOURCE_MQTT, cmd.c_str());
         }
         break;
       }
 
     case CPlugin::Function::CPLUGIN_PROTOCOL_SEND:
       {
-        if (!WiFiConnected(10)) {
+        if (!NetworkConnected(10)) {
           success = false;
           break;
         }
-        MakeControllerSettings(ControllerSettings);
-        LoadControllerSettings(event->ControllerIndex, ControllerSettings);
+        String pubname = CPlugin_006_pubname;
+        bool mqtt_retainFlag = CPlugin_006_mqtt_retainFlag;
 
         statusLED(true);
 
-        if (ExtraTaskSettings.TaskIndex != event->TaskIndex) {
-          String dummy;
-          PluginCall(PLUGIN_GET_DEVICEVALUENAMES, event, dummy);
-        }
-
-        String pubname = ControllerSettings.Publish;
+        LoadTaskSettings(event->TaskIndex);
         parseControllerVariables(pubname, event, false);
 
-        String value = "";
-        byte valueCount = getValueCountFromSensorType(event->sensorType);
+        byte valueCount = getValueCountForTask(event->TaskIndex);
         for (byte x = 0; x < valueCount; x++)
         {
           String tmppubname = pubname;
           tmppubname.replace(F("%valname%"), ExtraTaskSettings.TaskDeviceValueNames[x]);
-          value = formatUserVarNoCheck(event, x);
-          MQTTpublish(event->ControllerIndex, tmppubname.c_str(), value.c_str(), Settings.MQTTRetainFlag);
+          // Small optimization so we don't try to copy potentially large strings
+          if (event->sensorType == Sensor_VType::SENSOR_TYPE_STRING) {
+            MQTTpublish(event->ControllerIndex, tmppubname.c_str(), event->String2.c_str(), mqtt_retainFlag);
+          } else {
+            String value = formatUserVarNoCheck(event, x);
+            MQTTpublish(event->ControllerIndex, tmppubname.c_str(), value.c_str(), mqtt_retainFlag);
+          }
         }
         break;
       }

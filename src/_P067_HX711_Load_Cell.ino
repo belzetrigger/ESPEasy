@@ -1,3 +1,4 @@
+#include "_Plugin_Helper.h"
 #ifdef USES_P067
 //#######################################################################################################
 //#################################### Plugin 063: _P067_HX711_Load_Cell ################################
@@ -21,10 +22,6 @@
 #define PLUGIN_NAME_067         "Weight - HX711 Load Cell [TESTING]"
 #define PLUGIN_VALUENAME1_067   "WeightChanA"
 #define PLUGIN_VALUENAME2_067   "WeightChanB"
-
-// #include <*.h>   no lib required
-#include "_Plugin_Helper.h"
-
 
 
 #define BIT_POS_OS_CHAN_A         0
@@ -136,7 +133,7 @@ void float2int(float valFloat, int16_t *valInt0, int16_t *valInt1)
 void int2float(int16_t valInt0, int16_t valInt1, float *valFloat)
 {
   // FIXME TD-er: Casting from float* to integer* is not portable due to different binary data representations on different platforms.
-  float offset;
+  float offset = 0.0f; // Set to some value to prevent compiler warnings
   int16_t *itf = (int16_t *)&offset;
   *itf++ = valInt0;
   *itf = valInt1;
@@ -154,7 +151,7 @@ boolean Plugin_067(byte function, struct EventStruct *event, String& string)
         Device[++deviceCount].Number = PLUGIN_ID_067;
         Device[deviceCount].Type = DEVICE_TYPE_DUAL;
         Device[deviceCount].Ports = 0;
-        Device[deviceCount].VType = SENSOR_TYPE_DUAL;
+        Device[deviceCount].VType = Sensor_VType::SENSOR_TYPE_DUAL;
         Device[deviceCount].PullUpOption = false;
         Device[deviceCount].InverseLogicOption = false;
         Device[deviceCount].FormulaOption = true;

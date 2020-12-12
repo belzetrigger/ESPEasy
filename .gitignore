@@ -14,6 +14,7 @@
 .piolibdeps
 pre_extra_script.py
 *.code-workspace
+.pio
 
 ## Project #####################
 lib/readme.txt
@@ -42,6 +43,11 @@ tools/vagrant/build/
 
 tools/vagrant/Custom.h
 
+
 .buildcache/
 
 tools/vagrant/pio_envlist.txt
+
+build_output/
+
+**/__tmpfile.cpp

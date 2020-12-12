@@ -1,3 +1,4 @@
+#include "_Plugin_Helper.h"
 #ifdef USES_P055
 //#######################################################################################################
 //#################################### Plugin 055: Chiming Mechanism ####################################
@@ -49,7 +50,7 @@
 
 //#include <*.h>   - no external lib required
 
-#include "_Plugin_Helper.h"
+#include "src/WebServer/Markup_Buttons.h"
 
 #define PLUGIN_055
 #define PLUGIN_ID_055         55
@@ -103,7 +104,7 @@ boolean Plugin_055(byte function, struct EventStruct *event, String& string)
         Device[++deviceCount].Number = PLUGIN_ID_055;
         Device[deviceCount].Type = DEVICE_TYPE_TRIPLE;
         Device[deviceCount].Ports = 0;
-        Device[deviceCount].VType = SENSOR_TYPE_NONE;
+        Device[deviceCount].VType = Sensor_VType::SENSOR_TYPE_NONE;
         Device[deviceCount].PullUpOption = false;
         Device[deviceCount].InverseLogicOption = true;
         Device[deviceCount].FormulaOption = false;

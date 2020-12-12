@@ -2,14 +2,15 @@
 #define CONTROLLERQUEUE_C009_QUEUE_ELEMENT_H
 
 #include "../../ESPEasy_common.h"
-#include "../DataStructs/ESPEasyLimits.h"
+#include "../CustomBuild/ESPEasyLimits.h"
+#include "../DataStructs/DeviceStruct.h"
 #include "../Globals/CPlugins.h"
 #include "../Globals/Plugins.h"
 
 struct EventStruct;
 
 
-// #ifdef USES_C009
+#ifdef USES_C009
 
 /*********************************************************************************************\
 * C009_queue_element for queueing requests for C009: FHEM HTTP.
@@ -27,10 +28,10 @@ public:
   int idx                          = 0;
   taskIndex_t TaskIndex            = INVALID_TASK_INDEX;
   controllerIndex_t controller_idx = INVALID_CONTROLLER_INDEX;
-  byte sensorType                  = 0;
+  Sensor_VType sensorType          = Sensor_VType::SENSOR_TYPE_NONE;
 };
 
-// #endif //USES_C009
+#endif //USES_C009
 
 
 #endif // CONTROLLERQUEUE_C009_QUEUE_ELEMENT_H

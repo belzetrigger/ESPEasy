@@ -4,10 +4,11 @@
 #include "../../ESPEasy_common.h"
 #include "../Globals/CPlugins.h"
 #include "../Globals/Plugins.h"
+#include "../DataStructs/DeviceStruct.h"
 
 struct EventStruct;
 
-// #ifdef USES_C004
+#ifdef USES_C004
 
 /*********************************************************************************************\
 * C004_queue_element for queueing requests for C004 ThingSpeak.
@@ -27,10 +28,10 @@ public:
   int idx                          = 0;
   taskIndex_t TaskIndex            = INVALID_TASK_INDEX;
   controllerIndex_t controller_idx = INVALID_CONTROLLER_INDEX;
-  byte sensorType                  = 0;
+  Sensor_VType sensorType          = Sensor_VType::SENSOR_TYPE_NONE;
 };
 
-// #endif //USES_C004
+#endif //USES_C004
 
 
 #endif // CONTROLLERQUEUE_C004_QUEUE_ELEMENT_H

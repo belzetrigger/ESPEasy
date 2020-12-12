@@ -1,11 +1,17 @@
 #include "../Commands/UPD.h"
 
-#include "../../ESPEasy_common.h"
-#include "../Commands/Common.h"
-#include "../Globals/Settings.h"
-#include "../../ESPEasy-Globals.h"
 
-#include "../../ESPEasy_fdwdecl.h"
+#include "../../ESPEasy_common.h"
+
+#include "../Commands/Common.h"
+#include "../ESPEasyCore/ESPEasyNetwork.h"
+#include "../Globals/NetworkState.h"
+#include "../Globals/Settings.h"
+#include "../Helpers/Misc.h"
+#include "../Helpers/Network.h"
+#include "../Helpers/Networking.h"
+#include "../Helpers/StringConverter.h"
+#include "../Helpers/StringParser.h"
 
 String Command_UDP_Test(struct EventStruct *event, const char *Line)
 {
@@ -39,7 +45,7 @@ String Command_UPD_SendTo(struct EventStruct *event, const char *Line)
 
 String Command_UDP_SendToUPD(struct EventStruct *event, const char *Line)
 {
-  if (WiFiConnected()) {
+  if (NetworkConnected()) {
     String ip      = parseString(Line, 2);
     int port    = parseCommandArgumentInt(Line, 2);
 

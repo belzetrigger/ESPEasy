@@ -1,3 +1,5 @@
+#include "ESPEasy_common.h"
+
 #ifdef USES_N001
 //#######################################################################################################
 //########################### Notification Plugin 001: Email ############################################
@@ -8,6 +10,9 @@
 #define NPLUGIN_NAME_001       "Email (SMTP)"
 
 #define NPLUGIN_001_TIMEOUT 5000
+
+#include "src/DataStructs/NotificationSettingsStruct.h"
+#include "src/Globals/NPlugins.h"
 
 // The message body is included in event->String1
 
@@ -69,6 +74,9 @@ boolean NPlugin_001(NPlugin::Function function, struct EventStruct *event, Strin
 	}
 	return success;
 }
+
+
+#ifdef USES_NOTIFIER
 
 boolean NPlugin_001_send(const NotificationSettingsStruct& notificationsettings, const String& aSub, String& aMesg)
 {
@@ -163,6 +171,8 @@ boolean NPlugin_001_send(const NotificationSettingsStruct& notificationsettings,
 	}
 	return myStatus;
 }
+
+#endif
 
 boolean NPlugin_001_Auth(WiFiClient& client, const String& user, const String& pass)
 {

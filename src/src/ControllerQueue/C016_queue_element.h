@@ -2,13 +2,14 @@
 #define CONTROLLERQUEUE_C016_QUEUE_ELEMENT_H
 
 #include "../../ESPEasy_common.h"
-#include "../DataStructs/ESPEasyLimits.h"
+#include "../CustomBuild/ESPEasyLimits.h"
+#include "../DataStructs/DeviceStruct.h"
 #include "../Globals/Plugins.h"
 
 struct EventStruct;
 
 
-// #ifdef USES_C016
+#ifdef USES_C016
 
 /*********************************************************************************************\
 * C016_queue_element for queueing requests for C016: Cached HTTP.
@@ -28,11 +29,11 @@ public:
   unsigned long timestamp     = 0; // Unix timestamp
   taskIndex_t TaskIndex       = INVALID_TASK_INDEX;
   byte controller_idx         = 0;
-  byte sensorType             = 0;
+  Sensor_VType sensorType     = Sensor_VType::SENSOR_TYPE_NONE;
   byte valueCount             = 0;
 };
 
-// #endif //USES_C016
+#endif //USES_C016
 
 
 #endif // CONTROLLERQUEUE_C016_QUEUE_ELEMENT_H

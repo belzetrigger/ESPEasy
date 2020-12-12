@@ -1,3 +1,4 @@
+#include "_Plugin_Helper.h"
 #ifdef USES_P073
 
 // #######################################################################################################
@@ -46,7 +47,7 @@
 #define P073_DISP_CLOCK12       4
 #define P073_DISP_DATE          5
 
-#include "_Plugin_Helper.h"
+
 struct P073_data_struct : public PluginTaskData_base {
   P073_data_struct()
     : dotpos(-1), pin1(-1), pin2(-1), pin3(-1), displayModel(0), output(0),
@@ -128,7 +129,7 @@ struct P073_data_struct : public PluginTaskData_base {
   void FillBufferWithTemp(long temperature) {
     ClearBuffer();
     char p073_digit[8];
-    sprintf(p073_digit, "%7d", static_cast<int>(temperature));
+    sprintf_P(p073_digit, PSTR("%7d"), static_cast<int>(temperature));
     int p073_numlenght = strlen(p073_digit);
 
     for (int i = 0; i < p073_numlenght; i++) {
@@ -234,7 +235,7 @@ boolean Plugin_073(byte function, struct EventStruct *event, String& string) {
     case PLUGIN_DEVICE_ADD: {
       Device[++deviceCount].Number           = PLUGIN_ID_073;
       Device[deviceCount].Type               = DEVICE_TYPE_TRIPLE;
-      Device[deviceCount].VType              = SENSOR_TYPE_NONE;
+      Device[deviceCount].VType              = Sensor_VType::SENSOR_TYPE_NONE;
       Device[deviceCount].Ports              = 0;
       Device[deviceCount].PullUpOption       = false;
       Device[deviceCount].InverseLogicOption = false;
@@ -321,13 +322,12 @@ boolean Plugin_073(byte function, struct EventStruct *event, String& string) {
     }
 
     case PLUGIN_EXIT: {
-      clearPluginTaskData(event->TaskIndex);
       success = true;
       break;
     }
 
     case PLUGIN_INIT: {
-      initPluginTaskData(event->TaskIndex, new P073_data_struct());
+      initPluginTaskData(event->TaskIndex, new (std::nothrow) P073_data_struct());
       P073_data_struct *P073_data =
         static_cast<P073_data_struct *>(getPluginTaskData(event->TaskIndex));
 

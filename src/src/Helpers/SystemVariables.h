@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+#include "../../ESPEasy_common.h"
+
 class SystemVariables {
 
 public:
@@ -13,10 +15,22 @@ public:
     CR,
     IP,
     IP4,  // 4th IP octet
+    SUBNET,
+    GATEWAY,
+    DNS,
+    CLIENTIP,
     ISMQTT,
     ISMQTTIMP,
     ISNTP,
     ISWIFI,
+    #ifdef HAS_ETHERNET
+    ETHWIFIMODE,
+    ETHCONNECTED,
+    ETHDUPLEX,
+    ETHSPEED,
+    ETHSTATE,
+    ETHSPEEDSTATE,
+    #endif
     LCLTIME,
     LCLTIME_AM,
     LF,
@@ -28,6 +42,9 @@ public:
     SUNRISE,
     SUNSET,
     SYSBUILD_DATE,
+    SYSBUILD_DESCR,
+    SYSBUILD_FILENAME,
+    SYSBUILD_GIT,
     SYSBUILD_TIME,
     SYSDAY,
     SYSDAY_0,

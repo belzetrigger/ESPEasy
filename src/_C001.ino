@@ -1,4 +1,8 @@
+#include "src/Helpers/_CPlugin_Helper.h"
 #ifdef USES_C001
+
+#include "src/Helpers/_CPlugin_DomoticzHelper.h"
+
 //#######################################################################################################
 //########################### Controller Plugin 001: Domoticz HTTP ######################################
 //#######################################################################################################
@@ -6,6 +10,7 @@
 #define CPLUGIN_001
 #define CPLUGIN_ID_001         1
 #define CPLUGIN_NAME_001       "Domoticz HTTP"
+
 
 
 bool CPlugin_001(CPlugin::Function function, struct EventStruct *event, String& string)
@@ -20,6 +25,7 @@ bool CPlugin_001(CPlugin::Function function, struct EventStruct *event, String& 
         Protocol[protocolCount].usesMQTT = false;
         Protocol[protocolCount].usesAccount = true;
         Protocol[protocolCount].usesPassword = true;
+        Protocol[protocolCount].usesExtCreds = true;
         Protocol[protocolCount].defaultPort = 8080;
         Protocol[protocolCount].usesID = true;
         break;
@@ -33,55 +39,63 @@ bool CPlugin_001(CPlugin::Function function, struct EventStruct *event, String& 
 
     case CPlugin::Function::CPLUGIN_INIT:
       {
-        MakeControllerSettings(ControllerSettings);
-        LoadControllerSettings(event->ControllerIndex, ControllerSettings);
-        C001_DelayHandler.configureControllerSettings(ControllerSettings);
+        success = init_c001_delay_queue(event->ControllerIndex);
+        break;
+      }
+
+    case CPlugin::Function::CPLUGIN_EXIT:
+      {
+        exit_c001_delay_queue();
         break;
       }
 
     case CPlugin::Function::CPLUGIN_PROTOCOL_SEND:
       {
+        if (C001_DelayHandler == nullptr) {
+          break;
+        }
         if (event->idx != 0)
         {
           // We now create a URI for the request
           String url;
+          url.reserve(128);
+          url = F("/json.htm?type=command&param=");
 
-          switch (event->sensorType)
+          const Sensor_VType sensorType = event->getSensorType();
+
+
+          switch (sensorType)
           {
-            case SENSOR_TYPE_SWITCH:
-              url = F("/json.htm?type=command&param=switchlight&idx=");
-              url += event->idx;
-              url += F("&switchcmd=");
-              if (UserVar[event->BaseVarIndex] == 0)
-                url += F("Off");
-              else
-                url += F("On");
-              break;
-            case SENSOR_TYPE_DIMMER:
-              url = F("/json.htm?type=command&param=switchlight&idx=");
+            case Sensor_VType::SENSOR_TYPE_SWITCH:
+            case Sensor_VType::SENSOR_TYPE_DIMMER:
+              url += F("switchlight&idx=");
               url += event->idx;
               url += F("&switchcmd=");
               if (UserVar[event->BaseVarIndex] == 0) {
-                url += ("Off");
+                url += F("Off");
               } else {
-                url += F("Set%20Level&level=");
-                url += UserVar[event->BaseVarIndex];
+                if (sensorType == Sensor_VType::SENSOR_TYPE_SWITCH) {
+                  url += F("On");
+                } else {
+                  url += F("Set%20Level&level=");
+                  url += UserVar[event->BaseVarIndex];
+                }
               }
               break;
 
-            case SENSOR_TYPE_SINGLE:
-            case SENSOR_TYPE_LONG:
-            case SENSOR_TYPE_DUAL:
-            case SENSOR_TYPE_TRIPLE:
-            case SENSOR_TYPE_QUAD:
-            case SENSOR_TYPE_TEMP_HUM:
-            case SENSOR_TYPE_TEMP_BARO:
-            case SENSOR_TYPE_TEMP_EMPTY_BARO:
-            case SENSOR_TYPE_TEMP_HUM_BARO:
-            case SENSOR_TYPE_WIND:
-            case SENSOR_TYPE_STRING:
+            case Sensor_VType::SENSOR_TYPE_SINGLE:
+            case Sensor_VType::SENSOR_TYPE_LONG:
+            case Sensor_VType::SENSOR_TYPE_DUAL:
+            case Sensor_VType::SENSOR_TYPE_TRIPLE:
+            case Sensor_VType::SENSOR_TYPE_QUAD:
+            case Sensor_VType::SENSOR_TYPE_TEMP_HUM:
+            case Sensor_VType::SENSOR_TYPE_TEMP_BARO:
+            case Sensor_VType::SENSOR_TYPE_TEMP_EMPTY_BARO:
+            case Sensor_VType::SENSOR_TYPE_TEMP_HUM_BARO:
+            case Sensor_VType::SENSOR_TYPE_WIND:
+            case Sensor_VType::SENSOR_TYPE_STRING:
             default:
-              url = F("/json.htm?type=command&param=udevice&idx=");
+              url += F("udevice&idx=");
               url += event->idx;
               url += F("&nvalue=0");
               url += F("&svalue=");
@@ -97,8 +111,8 @@ bool CPlugin_001(CPlugin::Function function, struct EventStruct *event, String& 
             url += mapVccToDomoticz();
           #endif
 
-          success = C001_DelayHandler.addToQueue(C001_queue_element(event->ControllerIndex, url));
-          scheduleNextDelayQueue(TIMER_C001_DELAY_QUEUE, C001_DelayHandler.getNextScheduleTime());
+          success = C001_DelayHandler->addToQueue(C001_queue_element(event->ControllerIndex, url));
+          Scheduler.scheduleNextDelayQueue(ESPEasy_Scheduler::IntervalTimer_e::TIMER_C001_DELAY_QUEUE, C001_DelayHandler->getNextScheduleTime());
         } // if ixd !=0
         else
         {

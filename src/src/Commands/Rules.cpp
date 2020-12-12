@@ -1,12 +1,22 @@
 #include "../Commands/Rules.h"
 
-#include "../../ESPEasy_common.h"
-#include "../Commands/Common.h"
-#include "../DataStructs/EventValueSource.h"
-#include "../Globals/Settings.h"
-#include "../../ESPEasy-Globals.h"
-#include "../../ESPEasy_fdwdecl.h"
 
+#include "../../ESPEasy_common.h"
+
+
+#include "../Commands/Common.h"
+
+#include "../DataTypes/EventValueSource.h"
+
+#include "../ESPEasyCore/Controller.h"
+#include "../ESPEasyCore/ESPEasyRules.h"
+
+#include "../Globals/EventQueue.h"
+#include "../Globals/Settings.h"
+
+#include "../Helpers/Misc.h"
+#include "../Helpers/Rules_calculate.h"
+#include "../Helpers/StringConverter.h"
 
 String Command_Rules_Execute(struct EventStruct *event, const char *Line)
 {
@@ -47,7 +57,7 @@ String Command_Rules_Events(struct EventStruct *event, const char *Line)
   if (Settings.UseRules) {
     const bool executeImmediately = 
         SourceNeedsStatusUpdate(event->Source) ||
-        event->Source == VALUE_SOURCE_RULES;
+        event->Source == EventValueSource::Enum::VALUE_SOURCE_RULES;
     if (executeImmediately) {
       rulesProcessing(eventName); // TD-er: Process right now 
     } else {
@@ -62,7 +72,7 @@ String Command_Rules_Let(struct EventStruct *event, const char *Line)
   String TmpStr1;
 
   if (GetArgv(Line, TmpStr1, 3)) {
-    float result = 0.0;
+    float result = 0.0f;
     Calculate(TmpStr1.c_str(), &result);
     customFloatVar[event->Par1 - 1] = result;
   }

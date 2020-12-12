@@ -25,7 +25,7 @@
 	Copyleft Nagy Sándor 2018 - https://bitekmindenhol.blog.hu/
   ------------------------------------------------------------------------------------------
 */
-
+#include "_Plugin_Helper.h"
 #define PLUGIN_166
 #define PLUGIN_ID_166         166
 #define PLUGIN_NAME_166       "WiFiMan"
@@ -60,7 +60,7 @@ boolean Plugin_166(byte function, struct EventStruct *event, String& string)
       {
         Device[++deviceCount].Number = PLUGIN_ID_166;
         Device[deviceCount].Type = DEVICE_TYPE_DUMMY;
-        Device[deviceCount].VType = SENSOR_TYPE_DUAL;
+        Device[deviceCount].VType = Sensor_VType::SENSOR_TYPE_DUAL;
         Device[deviceCount].Ports = 0;
         Device[deviceCount].PullUpOption = false;
         Device[deviceCount].InverseLogicOption = false;
@@ -279,7 +279,7 @@ void setmodemsleep(byte state, int lightsleepmode, int wakegpio) {
     delay( 1 );            // let cpu to deal with it
     WiFi.persistent( false ); // do not use flash memory
 //    WifiConnect(2);        // use ESPEasy Wifi.ino to reconnect
-    wifiSetup = false;     // restore WifiCheck()
+    WiFiEventData.wifiSetup = false;     // restore WifiCheck()
     //tryConnectWiFi(); //
     WiFiConnectRelaxed();
     String event = F("System#ModemSleep=0");
@@ -287,7 +287,7 @@ void setmodemsleep(byte state, int lightsleepmode, int wakegpio) {
     Plugin_166_modemsleepstatus = 0;
   }
   if ((state == 1) && (Plugin_166_modemsleepstatus == 0)) {
-    wifiSetup = true; // bypass WifiCheck() with this simple hack
+    WiFiEventData.wifiSetup = true; // bypass WifiCheck() with this simple hack
     WiFi.persistent( false ); // do not use flash memory
     #ifndef ESP32
      wifi_station_disconnect();

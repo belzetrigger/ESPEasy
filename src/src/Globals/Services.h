@@ -5,11 +5,13 @@
 
 #ifdef FEATURE_ARDUINO_OTA
   #include <ArduinoOTA.h>
-  #ifdef ESP8266
-    #include <ESP8266mDNS.h>
-  #endif
-  #ifdef ESP32
-    #include <ESPmDNS.h>
+  #ifdef FEATURE_MDNS
+    #ifdef ESP8266
+      #include <ESP8266mDNS.h>
+    #endif
+    #ifdef ESP32
+      #include <ESPmDNS.h>
+    #endif
   #endif
 
   extern bool ArduinoOTAtriggered;
@@ -35,11 +37,16 @@
 
   #include <WiFi.h>
   #include <WebServer.h>
-
+  #include <ESP32HTTPUpdateServer.h>
+  
   extern WebServer web_server;
+  #ifndef NO_HTTP_UPDATER
+  extern ESP32HTTPUpdateServer httpUpdater;
+  #endif
 
 #endif
 
 
 
 #endif // GLOBALS_SERVICES_H
+  

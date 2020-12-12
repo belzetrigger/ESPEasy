@@ -1,12 +1,23 @@
 #ifndef CONTROLLERQUEUE_CONTROLLER_DELAY_HANDLER_STRUCT_H
 #define CONTROLLERQUEUE_CONTROLLER_DELAY_HANDLER_STRUCT_H
 
-
 #include "../DataStructs/ControllerSettingsStruct.h"
-#include "../DataStructs/SchedulerTimers.h"
 #include "../DataStructs/TimingStats.h"
+#include "../ESPEasyCore/ESPEasy_Log.h"
 #include "../Globals/CPlugins.h"
+#include "../Globals/ESPEasy_Scheduler.h"
+#include "../Globals/Protocol.h"
+#include "../Helpers/_CPlugin_Helper.h"
+#include "../Helpers/ESPEasy_Storage.h"
 #include "../Helpers/ESPEasy_time_calc.h"
+#include "../Helpers/Networking.h"
+#include "../Helpers/Scheduler.h"
+#include "../Helpers/StringConverter.h"
+
+#include <Arduino.h>
+#include <list>
+#include <memory> // For std::shared_ptr
+#include <new>    // std::nothrow
 
 
 /*********************************************************************************************\
@@ -41,6 +52,17 @@ struct ControllerDelayHandlerStruct {
     if (minTimeBetweenMessages < 10) { minTimeBetweenMessages = 10; }
   }
 
+  bool readyToProcess(const T& element) const {
+    const protocolIndex_t protocolIndex = getProtocolIndex_from_ControllerIndex(element.controller_idx);
+    if (protocolIndex == INVALID_PROTOCOL_INDEX) {
+      return false;
+    }
+    if (Protocol[protocolIndex].needsNetwork) {
+      return NetworkConnected(10);
+    }
+    return true;
+  }
+
   bool queueFull(const T& element) const {
     if (sendQueue.size() >= max_queue_depth) { return true; }
 
@@ -69,7 +91,7 @@ struct ControllerDelayHandlerStruct {
 
   // Try to add to the queue, if permitted by "delete_oldest"
   // Return false when no item was added.
-  bool addToQueue(const T& element) {
+  bool addToQueue(T&& element) {
     if (delete_oldest) {
       // Force add to the queue.
       // If max buffer is reached, the oldest in the queue (first to be served) will be removed.
@@ -139,6 +161,13 @@ struct ControllerDelayHandlerStruct {
     return nextTime;
   }
 
+  // Set the "lastSend" to "now" + some additional delay.
+  // This will cause the next schedule time to be delayed to 
+  // msecFromNow + minTimeBetweenMessages
+  void setAdditionalDelay(unsigned long msecFromNow) {
+    lastSend = millis() + msecFromNow;
+  }
+
   size_t getQueueMemorySize() const {
     size_t totalSize = 0;
 
@@ -157,6 +186,8 @@ struct ControllerDelayHandlerStruct {
   bool          delete_oldest;
   bool          must_check_reply;
 };
+
+
 
 // Uncrustify must not be used on macros, so turn it off.
 // Also make sure to wrap the forward declaration of this function in the same wrappers 
@@ -180,27 +211,60 @@ struct ControllerDelayHandlerStruct {
 // N.B. some controllers only can send one value per iteration, so a returned "false" can mean it
 //      was still successful. The controller should keep track of the last value sent
 //      in the element stored in the queue.
-#define DEFINE_Cxxx_DELAY_QUEUE_MACRO(NNN, M)                                                                        \
-  bool do_process_c##NNN####M##_delay_queue(int controller_number,                                                   \
-                                           const C##NNN####M##_queue_element & element,                              \
-                                           ControllerSettingsStruct & ControllerSettings);                           \
-  ControllerDelayHandlerStruct<C##NNN####M##_queue_element>C##NNN####M##_DelayHandler;                               \
-  void process_c##NNN####M##_delay_queue();                                                                          \
-  void process_c##NNN####M##_delay_queue() {                                                                         \
-    C##NNN####M##_queue_element *element(C##NNN####M##_DelayHandler.getNext());                                      \
-    if (element == NULL) return;                                                                                     \
-    MakeControllerSettings (ControllerSettings);                                                                     \
-    LoadControllerSettings(element->controller_idx, ControllerSettings);                                             \
-    C##NNN####M##_DelayHandler.configureControllerSettings(ControllerSettings);                                      \
-    if (!WiFiConnected(10)) {                                                                                        \
-      scheduleNextDelayQueue(TIMER_C##NNN####M##_DELAY_QUEUE, C##NNN####M##_DelayHandler.getNextScheduleTime());     \
-      return;                                                                                                        \
-    }                                                                                                                \
-    START_TIMER;                                                                                                     \
-    C##NNN####M##_DelayHandler.markProcessed(do_process_c##NNN####M##_delay_queue(M, *element, ControllerSettings)); \
-    STOP_TIMER(C##NNN####M##_DELAY_QUEUE);                                                                           \
-    scheduleNextDelayQueue(TIMER_C##NNN####M##_DELAY_QUEUE, C##NNN####M##_DelayHandler.getNextScheduleTime());       \
-  }
+#define DEFINE_Cxxx_DELAY_QUEUE_MACRO(NNN, M)                                                                          \
+  bool do_process_c##NNN####M##_delay_queue(int controller_number,                                                     \
+                                           const C##NNN####M##_queue_element & element,                                \
+                                           ControllerSettingsStruct & ControllerSettings);                             \
+  typedef ControllerDelayHandlerStruct<C##NNN####M##_queue_element> C##NNN####M##_DelayHandler_t;                      \
+  extern C##NNN####M##_DelayHandler_t *C##NNN####M##_DelayHandler;                                                     \
+  void process_c##NNN####M##_delay_queue();                                                                            \
+  bool init_c##NNN####M##_delay_queue(controllerIndex_t ControllerIndex);                                              \
+  void exit_c##NNN####M##_delay_queue();                                                                               \
+
+#define DEFINE_Cxxx_DELAY_QUEUE_MACRO_CPP(NNN, M)                                                                      \
+  C##NNN####M##_DelayHandler_t *C##NNN####M##_DelayHandler = nullptr;                                                  \
+  void process_c##NNN####M##_delay_queue() {                                                                           \
+    if (C##NNN####M##_DelayHandler == nullptr) return;                                                                 \
+    C##NNN####M##_queue_element *element(C##NNN####M##_DelayHandler->getNext());                                       \
+    if (element == NULL) return;                                                                                       \
+    MakeControllerSettings(ControllerSettings);                                                                        \
+    bool ready = true;                                                                                                 \
+    if (!AllocatedControllerSettings()) {                                                                              \
+      ready = false;                                                                                                   \
+    } else {                                                                                                           \
+      LoadControllerSettings(element->controller_idx, ControllerSettings);                                             \
+      C##NNN####M##_DelayHandler->configureControllerSettings(ControllerSettings);                                     \
+      if (!C##NNN####M##_DelayHandler->readyToProcess(*element)) { ready = false; }                                    \
+    }                                                                                                                  \
+    if (ready) {                                                                                                       \
+      START_TIMER;                                                                                                     \
+      C##NNN####M##_DelayHandler->markProcessed(do_process_c##NNN####M##_delay_queue(M, *element, ControllerSettings)); \
+      STOP_TIMER(C##NNN####M##_DELAY_QUEUE);                                                                           \
+    }                                                                                                                  \
+    Scheduler.scheduleNextDelayQueue(ESPEasy_Scheduler::IntervalTimer_e::TIMER_C##NNN####M##_DELAY_QUEUE, C##NNN####M##_DelayHandler->getNextScheduleTime());         \
+  }                                                                                                                    \
+  bool init_c##NNN####M##_delay_queue(controllerIndex_t ControllerIndex) {                                             \
+    if (C##NNN####M##_DelayHandler == nullptr) {                                                                       \
+      C##NNN####M##_DelayHandler = new (std::nothrow) (C##NNN####M##_DelayHandler_t);                                  \
+    }                                                                                                                  \
+    if (C##NNN####M##_DelayHandler == nullptr) { return false; }                                                       \
+    MakeControllerSettings(ControllerSettings);                                                                        \
+    if (!AllocatedControllerSettings()) {                                                                              \
+      return false;                                                                                                    \
+    }                                                                                                                  \
+    LoadControllerSettings(ControllerIndex, ControllerSettings);                                                       \
+    C##NNN####M##_DelayHandler->configureControllerSettings(ControllerSettings);                                       \
+    return true;                                                                                                       \
+  }                                                                                                                    \
+  void exit_c##NNN####M##_delay_queue() {                                                                              \
+    if (C##NNN####M##_DelayHandler != nullptr) {                                                                       \
+      delete C##NNN####M##_DelayHandler;                                                                               \
+      C##NNN####M##_DelayHandler = nullptr;                                                                            \
+    }                                                                                                                  \
+  }                                                                                                                    \
+
+
+
 
 // Uncrustify must not be used on macros, but we're now done, so turn Uncrustify on again.
 // *INDENT-ON*
